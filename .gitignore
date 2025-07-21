@@ -1,32 +1,183 @@
-# Prerequisites
-*.d
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <RotaryEncoder.h>
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+// Инициализация LCD 1602 с I2C (адрес обычно 0x27 или 0x3F)
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Адрес, столбцы, строки
 
-# Precompiled Headers
-*.gch
-*.pch
+// Пины для энкодера
+#define PIN_ENCODER_CLK 2
+#define PIN_ENCODER_DT 3
+#define PIN_ENCODER_SW 4 // Кнопка энкодера (опционально)
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+RotaryEncoder encoder(PIN_ENCODER_DT, PIN_ENCODER_CLK);
 
-# Fortran module files
-*.mod
-*.smod
+int selectedPos = 1; // Текущая позиция: 1-A, 2-B, 3-C
+String selectedLetters = ""; // Строка для хранения выбранных букв
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+void setup() {
+  Serial.begin(9600);
+  
+  // Инициализация LCD
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+  
+  // Инициализация энкодера
+  pinMode(PIN_ENCODER_SW, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_CLK), checkEncoder, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_DT), checkEncoder, CHANGE);
+  
+  updateDisplay();
+}
 
-# Executables
-*.exe
-*.out
-*.app
+void loop() {
+  // Проверка нажатия кнопки энкодера
+  if (digitalRead(PIN_ENCODER_SW) == LOW) {
+    delay(50); // Дебаунс
+    if (digitalRead(PIN_ENCODER_SW) == LOW) {
+      addSelectedLetter();
+      while (digitalRead(PIN_ENCODER_SW) == LOW); // Ждем отпускания
+    }
+  }
+}
+
+void checkEncoder() {
+  encoder.tick();
+  int newPos = encoder.getPosition();
+  
+  if (newPos < 0) {
+    newPos = 0;
+    encoder.setPosition(0);
+  } else if (newPos > 2) {
+    newPos = 2;
+    encoder.setPosition(2);
+  }
+  
+  if (newPos != selectedPos) {
+    selectedPos = newPos + 1; // +1 потому что у нас позиции 1-3
+    updateDisplay();
+  }
+}
+
+void addSelectedLetter() {
+  switch (selectedPos) {
+    case 1: selectedLetters += "A"; break;
+    case 2: selectedLetters += "B"; break;
+    case 3: selectedLetters += "C"; break;
+  }
+  
+  // Ограничим длину строки, чтобы помещалась на экран
+  if (selectedLetters.length() > 16) {
+    selectedLetters = selectedLetters.substring(selectedLetters.length() - 16);
+  }
+  
+  updateDisplay();
+}
+
+void updateDisplay() {
+  lcd.clear();
+  
+  // Первая строка - буквы с указателем выбора
+  lcd.setCursor(0, 0);
+  lcd.print(selectedPos == 1 ? "A<" : "A ");
+  lcd.setCursor(4, 0);
+  lcd.print(selectedPos == 2 ? "B<" : "B ");
+  lcd.setCursor(8, 0);
+  lcd.print(selectedPos == 3 ? "C<" : "C ");
+  
+  // Вторая строка - выбранные буквы
+  lcd.setCursor(0, 1);
+  lcd.print(selectedLetters);
+}#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <RotaryEncoder.h>
+
+// Инициализация LCD 1602 с I2C (адрес обычно 0x27 или 0x3F)
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Адрес, столбцы, строки
+
+// Пины для энкодера
+#define PIN_ENCODER_CLK 2
+#define PIN_ENCODER_DT 3
+#define PIN_ENCODER_SW 4 // Кнопка энкодера (опционально)
+
+RotaryEncoder encoder(PIN_ENCODER_DT, PIN_ENCODER_CLK);
+
+int selectedPos = 1; // Текущая позиция: 1-A, 2-B, 3-C
+String selectedLetters = ""; // Строка для хранения выбранных букв
+
+void setup() {
+  Serial.begin(9600);
+  
+  // Инициализация LCD
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+  
+  // Инициализация энкодера
+  pinMode(PIN_ENCODER_SW, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_CLK), checkEncoder, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_DT), checkEncoder, CHANGE);
+  
+  updateDisplay();
+}
+
+void loop() {
+  // Проверка нажатия кнопки энкодера
+  if (digitalRead(PIN_ENCODER_SW) == LOW) {
+    delay(50); // Дебаунс
+    if (digitalRead(PIN_ENCODER_SW) == LOW) {
+      addSelectedLetter();
+      while (digitalRead(PIN_ENCODER_SW) == LOW); // Ждем отпускания
+    }
+  }
+}
+
+void checkEncoder() {
+  encoder.tick();
+  int newPos = encoder.getPosition();
+  
+  if (newPos < 0) {
+    newPos = 0;
+    encoder.setPosition(0);
+  } else if (newPos > 2) {
+    newPos = 2;
+    encoder.setPosition(2);
+  }
+  
+  if (newPos != selectedPos) {
+    selectedPos = newPos + 1; // +1 потому что у нас позиции 1-3
+    updateDisplay();
+  }
+}
+
+void addSelectedLetter() {
+  switch (selectedPos) {
+    case 1: selectedLetters += "A"; break;
+    case 2: selectedLetters += "B"; break;
+    case 3: selectedLetters += "C"; break;
+  }
+  
+  // Ограничим длину строки, чтобы помещалась на экран
+  if (selectedLetters.length() > 16) {
+    selectedLetters = selectedLetters.substring(selectedLetters.length() - 16);
+  }
+  
+  updateDisplay();
+}
+
+void updateDisplay() {
+  lcd.clear();
+  
+  // Первая строка - буквы с указателем выбора
+  lcd.setCursor(0, 0);
+  lcd.print(selectedPos == 1 ? "A<" : "A ");
+  lcd.setCursor(4, 0);
+  lcd.print(selectedPos == 2 ? "B<" : "B ");
+  lcd.setCursor(8, 0);
+  lcd.print(selectedPos == 3 ? "C<" : "C ");
+  
+  // Вторая строка - выбранные буквы
+  lcd.setCursor(0, 1);
+  lcd.print(selectedLetters);
+}
